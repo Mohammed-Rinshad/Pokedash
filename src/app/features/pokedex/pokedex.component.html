@@ -1,0 +1,129 @@
+<div class="space-y-4">
+  <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+    <div>
+      <h2 class="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-poke-blue to-poke-yellow bg-clip-text text-transparent">
+        Pokédex
+      </h2>
+      <p class="text-gray-300/90 mt-1">
+        First 25 Pokémon, with types and core stats.
+      </p>
+    </div>
+  </div>
+
+  <section class="glass-panel p-4 sm:p-6 overflow-hidden">
+    @if (loading()) {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[640px] border-collapse">
+          <thead>
+            <tr class="text-left text-sm text-gray-300/80">
+              <th class="py-3 px-2 font-semibold">Image</th>
+              <th class="py-3 px-2 font-semibold">Name</th>
+              <th class="py-3 px-2 font-semibold">Types</th>
+              <th class="py-3 px-2 font-semibold text-center">HP</th>
+              <th class="py-3 px-2 font-semibold text-center">Attack</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (rowId of skeletonRowIds; track rowId) {
+              <tr class="border-t border-white/5">
+                <td class="py-3 px-2">
+                  <div class="w-11 h-11 rounded-xl bg-white/10 animate-pulse"></div>
+                </td>
+                <td class="py-3 px-2">
+                  <div class="h-4 w-28 rounded bg-white/10 animate-pulse"></div>
+                </td>
+                <td class="py-3 px-2">
+                  <div class="flex flex-wrap gap-2">
+                    <div class="h-6 w-16 rounded bg-white/10 animate-pulse"></div>
+                    <div class="h-6 w-16 rounded bg-white/10 animate-pulse"></div>
+                  </div>
+                </td>
+                <td class="py-3 px-2 text-center">
+                  <div class="h-4 w-12 mx-auto rounded bg-white/10 animate-pulse"></div>
+                </td>
+                <td class="py-3 px-2 text-center">
+                  <div class="h-4 w-14 mx-auto rounded bg-white/10 animate-pulse"></div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    } @else {
+      @if (error(); as err) {
+        <div class="flex flex-col items-center justify-center text-center py-10 gap-3">
+          <div class="text-poke-red font-semibold text-lg">Could not load Pokémon</div>
+          <div class="text-sm text-gray-300/90 max-w-xl">
+            {{ err }}
+          </div>
+          <button
+            type="button"
+            (click)="retry()"
+            class="mt-2 px-5 py-2 rounded-xl bg-white/10 border border-white/15 hover:bg-white/15 hover:-translate-y-0.5 transition-all text-white font-medium shadow-lg shadow-black/20"
+          >
+            Retry
+          </button>
+        </div>
+      } @else {
+      <div class="overflow-x-auto">
+        <table class="w-full min-w-[640px] border-collapse">
+          <thead>
+            <tr class="text-left text-sm text-gray-300/80">
+              <th class="py-3 px-2 font-semibold">Image</th>
+              <th class="py-3 px-2 font-semibold">Name</th>
+              <th class="py-3 px-2 font-semibold">Types</th>
+              <th class="py-3 px-2 font-semibold text-center">HP</th>
+              <th class="py-3 px-2 font-semibold text-center">Attack</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (pokemon of pokemons(); track pokemon.id) {
+              <tr
+                class="border-t border-white/5 group cursor-pointer transition-all hover:bg-white/5 hover:-translate-y-[1px] duration-200"
+                (click)="selectPokemon(pokemon.id)"
+                role="button"
+                tabindex="0"
+                [attr.aria-label]="'Select Pokémon ' + pokemon.name"
+              >
+                <td class="py-3 px-2">
+                  <div class="w-11 h-11 rounded-xl bg-white/5 border border-white/10 overflow-hidden flex items-center justify-center">
+                    <img
+                      class="w-10 h-10 object-contain transition-transform duration-200 group-hover:scale-105"
+                      [src]="pokemon.imageUrl"
+                      [alt]="pokemon.name"
+                      loading="lazy"
+                    />
+                  </div>
+                </td>
+                <td class="py-3 px-2 font-semibold text-white group-hover:text-poke-yellow transition-colors">
+                  {{ pokemon.name | titlecase }}
+                </td>
+                <td class="py-3 px-2">
+                  <div class="flex flex-wrap gap-2">
+                    @for (type of pokemon.types; track type) {
+                      <span class="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-200/95">
+                        {{ type | titlecase }}
+                      </span>
+                    }
+                  </div>
+                </td>
+                <td class="py-3 px-2 text-center">
+                  <span class="inline-flex items-center justify-center px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-sm font-medium">
+                    {{ statValue(pokemon, 'hp') }}
+                  </span>
+                </td>
+                <td class="py-3 px-2 text-center">
+                  <span class="inline-flex items-center justify-center px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-sm font-medium">
+                    {{ statValue(pokemon, 'attack') }}
+                  </span>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      }
+    }
+  </section>
+</div>
+
