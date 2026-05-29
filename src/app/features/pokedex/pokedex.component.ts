@@ -31,7 +31,8 @@ export class PokedexComponent implements OnInit {
   // Global UI State
   public readonly loading = this.pokemonStore.loading;
   public readonly error = this.pokemonStore.error;
-  public readonly team = this.trainerStore.team;
+  public readonly teams = this.trainerStore.teams;
+  public readonly activeTeam = this.trainerStore.activeTeam;
   public readonly skeletonRowIds = SKELETON_ROWS;
 
   // Filter & Sort State Signals
@@ -75,14 +76,27 @@ export class PokedexComponent implements OnInit {
   }
 
   public isInTeam(pokemonId: number): boolean {
-    return this.team().some(p => p.id === pokemonId);
+    // Read teams() so OnPush views re-render when any team's roster changes.
+    return this.teams().some((team) => team.pokemon_ids.includes(pokemonId));
+  }
+
+  /**
+   * Action column: membership is checked across all saved teams; "Available" adds to the active team only.
+   */
+  public getTeamActionState(pokemonId: number): 'available' | 'in-team' | 'manage-in-builder' {
+    if (this.isInTeam(pokemonId)) {
+      return 'in-team';
+    }
+    const active = this.activeTeam();
+    if (!active || active.pokemon_ids.length >= 6) {
+      return 'manage-in-builder';
+    }
+    return 'available';
   }
 
   public addToTeam(event: Event, pokemon: Pokemon): void {
     event.stopPropagation();
-    if (this.team().length < 6 && !this.isInTeam(pokemon.id)) {
-      this.trainerStore.addToTeam(pokemon);
-    }
+    this.trainerStore.addToTeam(pokemon);
   }
 
   // --- Filtering & Sorting ---

@@ -1,0 +1,161 @@
+<div class="glass-panel p-6 rounded-xl relative overflow-hidden">
+  <div class="absolute top-0 right-0 w-64 h-64 bg-poke-blue/10 rounded-full blur-3xl pointer-events-none"></div>
+
+  <h3 class="text-xl font-bold text-white mb-6">Advanced Team Builder</h3>
+
+  <form [formGroup]="teamForm" (ngSubmit)="submitTeam()" class="space-y-6 relative z-10">
+    
+    <!-- Team Name (with Async Validation feedback) -->
+    <div>
+      <label class="block text-sm font-medium text-gray-300 mb-2">Team Name</label>
+      <input type="text" formControlName="name" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-poke-blue transition-all" placeholder="e.g. Kanto Starters">
+      
+      <!-- Validation Errors -->
+      @if (teamForm.get('name')?.touched && teamForm.get('name')?.errors; as errors) {
+        <div class="mt-2 text-sm text-rose-400">
+          @if (errors['required']) { <span>Team name is required.</span> }
+          @if (errors['minlength']) { <span>Must be at least 3 characters.</span> }
+          @if (errors['nameTaken']) { <span>You already have a team with this name!</span> }
+        </div>
+      }
+      @if (teamForm.get('name')?.status === 'PENDING') {
+        <div class="mt-2 text-sm text-poke-yellow">Checking availability...</div>
+      }
+    </div>
+
+    <!-- Pokémon Multi-select Autocomplete -->
+    <div class="relative">
+      <label class="block text-sm font-medium text-gray-300 mb-2">Search Pokémon to Add (Max 6)</label>
+      <input type="text" (input)="onSearchInput($event)" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-poke-blue transition-all" placeholder="Type a Pokémon name...">
+      
+      @if (isSearching) {
+        <div class="absolute right-4 top-11">
+          <div class="w-5 h-5 border-2 border-poke-yellow border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      }
+
+      <!-- Search Results Dropdown -->
+      @if (searchResults.length > 0) {
+        <div class="absolute z-50 w-full mt-2 bg-gray-800 border border-white/10 rounded-lg shadow-xl overflow-hidden max-h-60 overflow-y-auto">
+          @for (pokemon of searchResults; track pokemon.id) {
+            <button type="button" (click)="addPokemon(pokemon)" class="w-full flex items-center px-4 py-3 hover:bg-white/10 transition-colors text-left">
+              <img [src]="pokemon.imageUrl" class="w-10 h-10 object-contain mr-4">
+              <span class="text-white capitalize font-medium">{{ pokemon.name }}</span>
+            </button>
+          }
+        </div>
+      }
+    </div>
+
+    <!-- Form Array: Selected Pokémon -->
+    <div formArrayName="pokemonDetails">
+      @if (pokemonDetails.controls.length > 0) {
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+          @for (ctrl of pokemonDetails.controls; track $index) {
+            <div [formGroupName]="$index" class="glass-panel p-4 rounded-xl border border-white/5 relative group">
+              <button type="button" (click)="removePokemon($index)" class="absolute top-2 right-2 p-1 text-gray-400 hover:text-rose-400 hover:bg-rose-400/20 rounded-md transition-colors">
+                <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+              </button>
+              
+              <div class="flex items-center mb-4">
+                <div class="w-12 h-12 bg-white/5 rounded-lg flex items-center justify-center border border-white/10 mr-4">
+                  <img [src]="ctrl.get('imageUrl')?.value" class="w-10 h-10 object-contain">
+                </div>
+                <h4 class="font-semibold text-white capitalize">{{ ctrl.get('pokemonName')?.value }}</h4>
+              </div>
+              
+              <div class="space-y-3">
+                <div>
+                  <input type="text" formControlName="nickname" placeholder="Nickname (optional)" class="w-full text-sm bg-black/20 border border-white/5 rounded px-3 py-2 text-white focus:border-poke-blue focus:outline-none transition-colors">
+                </div>
+                <div>
+                  <input type="text" formControlName="heldItem" placeholder="Held Item (optional)" class="w-full text-sm bg-black/20 border border-white/5 rounded px-3 py-2 text-white focus:border-poke-blue focus:outline-none transition-colors">
+                </div>
+                
+                @if (teamForm.get('competitiveMode')?.value) {
+                  <div formGroupName="evs" class="pt-3 border-t border-white/5">
+                    <p class="text-xs font-medium text-gray-400 mb-2">EV Spread (Max 510 total, 252 per stat)</p>
+                    <div class="grid grid-cols-3 gap-2">
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">HP</label>
+                        <input type="number" formControlName="hp" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">Atk</label>
+                        <input type="number" formControlName="atk" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">Def</label>
+                        <input type="number" formControlName="def" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">SpA</label>
+                        <input type="number" formControlName="spa" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">SpD</label>
+                        <input type="number" formControlName="spd" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                      <div>
+                        <label class="text-[10px] text-gray-500 uppercase">Spe</label>
+                        <input type="number" formControlName="spe" class="w-full text-sm bg-black/20 border border-white/5 rounded px-2 py-1 text-white text-center">
+                      </div>
+                    </div>
+                    @if (ctrl.get('evs')?.errors?.['maxEvsExceeded']) {
+                      <p class="text-xs text-rose-400 mt-1">Total EVs cannot exceed 510.</p>
+                    }
+                  </div>
+                }
+              </div>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="text-center py-8 border-2 border-dashed border-white/10 rounded-xl mt-6">
+          <p class="text-gray-400 text-sm">No Pokémon selected yet. Search above to build your team!</p>
+        </div>
+      }
+      
+      @if (teamForm.get('pokemonDetails')?.touched && teamForm.get('pokemonDetails')?.errors?.['invalidTeamSize']) {
+        <p class="text-rose-400 text-sm mt-2">Team must have between 1 and 6 Pokémon.</p>
+      }
+    </div>
+
+    <hr class="border-white/10">
+
+    <!-- Competitive Mode Toggle -->
+    <div class="flex items-center justify-between">
+      <div>
+        <h4 class="text-white font-medium">Competitive Mode</h4>
+        <p class="text-gray-400 text-sm">Enable tier selection and EV tracking</p>
+      </div>
+      <label class="relative inline-flex items-center cursor-pointer">
+        <input type="checkbox" formControlName="competitiveMode" class="sr-only peer">
+        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-poke-blue"></div>
+      </label>
+    </div>
+
+    <!-- Competitive Stats (Conditional) -->
+    @if (teamForm.get('competitiveMode')?.value) {
+      <div formGroupName="competitiveStats" class="p-4 bg-black/20 rounded-xl border border-poke-blue/30 space-y-4 animate-fade-in">
+        <div>
+          <label class="block text-sm font-medium text-gray-300 mb-1">Format / Tier</label>
+          <select formControlName="tier" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-poke-blue">
+            <option value="OU">OverUsed (OU)</option>
+            <option value="UU">UnderUsed (UU)</option>
+            <option value="VGC">VGC Doubles</option>
+          </select>
+        </div>
+      </div>
+    }
+
+    <!-- Submit Button -->
+    <div class="pt-4">
+      <button type="submit" [disabled]="teamForm.invalid || teamForm.status === 'PENDING'" class="w-full py-3.5 rounded-lg font-bold text-white shadow-lg transition-all transform hover:-translate-y-0.5 active:translate-y-0 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              [ngClass]="teamForm.valid ? 'bg-gradient-to-r from-poke-blue to-poke-blue/80 shadow-poke-blue/25 hover:shadow-poke-blue/40' : 'bg-gray-700'">
+        Save Team
+      </button>
+    </div>
+
+  </form>
+</div>

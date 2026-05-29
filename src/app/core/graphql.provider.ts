@@ -1,32 +1,31 @@
-import { ApplicationConfig } from '@angular/core';
+import { APP_INITIALIZER, ApplicationConfig } from '@angular/core';
 import { ApolloClientOptions, InMemoryCache } from '@apollo/client/core';
-import { Apollo, APOLLO_OPTIONS } from 'apollo-angular';
+import { Apollo } from 'apollo-angular';
 import { HttpLink } from 'apollo-angular/http';
 import { environment } from '../../environments/environment';
 
-/**
- * Factory function to initialize the Apollo Client.
- * Configured with the public PokéAPI endpoint by default.
- * 
- * @param httpLink - The Apollo HttpLink service injected by Angular.
- * @returns ApolloClientOptions object containing link and cache setup.
- */
-export function createApollo(httpLink: HttpLink): ApolloClientOptions {
-  return {
-    link: httpLink.create({ uri: environment.graphqlPokeApiUrl }),
-    cache: new InMemoryCache(), // Standard in-memory cache for fast subsequent reads
+export function initializeApollo(apollo: Apollo, httpLink: HttpLink) {
+  return () => {
+    // Default client for PokéAPI
+    apollo.create({
+      link: httpLink.create({ uri: environment.graphqlPokeApiUrl }),
+      cache: new InMemoryCache(),
+    });
+
+    // Local mock server client (json-graphql-server serves at root, not /graphql)
+    apollo.create({
+      link: httpLink.create({ uri: environment.graphqlLocalApiUrl }),
+      cache: new InMemoryCache(),
+    }, 'local');
   };
 }
 
-/**
- * Standalone provider array for GraphQL configuration.
- * To be imported into app.config.ts providers array.
- */
 export const graphqlProvider: ApplicationConfig['providers'] = [
   Apollo,
   {
-    provide: APOLLO_OPTIONS,
-    useFactory: createApollo,
-    deps: [HttpLink],
+    provide: APP_INITIALIZER,
+    useFactory: initializeApollo,
+    deps: [Apollo, HttpLink],
+    multi: true,
   },
 ];

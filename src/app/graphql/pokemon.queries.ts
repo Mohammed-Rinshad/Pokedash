@@ -153,3 +153,33 @@ export const GET_POKEMON_DETAILS = gql`
     }
   }
 `;
+
+export interface SearchPokemonQueryVariables {
+  searchTerm: string;
+}
+
+export const SEARCH_POKEMON = gql`
+  query SearchPokemon($searchTerm: String!) {
+    pokemon_v2_pokemon(
+      where: {name: {_ilike: $searchTerm}}
+      limit: 10
+      order_by: { id: asc }
+    ) {
+      id
+      name
+      height
+      weight
+      pokemon_v2_pokemontypes {
+        pokemon_v2_type {
+          name
+        }
+      }
+      pokemon_v2_pokemonstats {
+        pokemon_v2_stat {
+          name
+        }
+        base_stat
+      }
+    }
+  }
+`;

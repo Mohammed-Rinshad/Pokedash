@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { Apollo } from 'apollo-angular';
-import { Observable, catchError, map, retry, shareReplay, throwError } from 'rxjs';
-import { GET_POKEMONS, GET_POKEMON_DETAILS, type GetPokemonsQueryResponse, type GetPokemonsQueryVariables, type GetPokemonDetailsQueryResponse, type GetPokemonDetailsQueryVariables } from '../../graphql/pokemon.queries';
+import { Observable, catchError, map, retry, shareReplay, throwError, of } from 'rxjs';
+import { GET_POKEMONS, GET_POKEMON_DETAILS, SEARCH_POKEMON, type GetPokemonsQueryResponse, type GetPokemonsQueryVariables, type GetPokemonDetailsQueryResponse, type GetPokemonDetailsQueryVariables, type SearchPokemonQueryVariables } from '../../graphql/pokemon.queries';
 import { Pokemon, PokemonDetails, type PokemonStat } from '../../models/pokemon.model';
 
 /**
@@ -65,6 +65,30 @@ export class PokemonService {
             err instanceof Error ? err.message : 'Failed to fetch Pokémon details. Please try again.';
           return throwError(() => new Error(message));
         }),
+      );
+  }
+
+  /**
+   * Search for Pokémon by name.
+   */
+  public searchPokemon(query: string): Observable<Pokemon[]> {
+    return this.apollo
+      .query<GetPokemonsQueryResponse, SearchPokemonQueryVariables>({
+        query: SEARCH_POKEMON,
+        variables: { searchTerm: `%${query}%` },
+      })
+      .pipe(
+        retry(3),
+        map((result) => {
+          const data = result.data;
+          if (!data) {
+            return [];
+          }
+          return data.pokemon_v2_pokemon.map((p) => this.toPokemon(p));
+        }),
+        catchError(() => {
+          return of([]); // return empty on search failure
+        })
       );
   }
 

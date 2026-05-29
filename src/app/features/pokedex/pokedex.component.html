@@ -175,22 +175,33 @@
                   </span>
                 </td>
                 <td class="py-3 px-2 text-center">
-                  @if (isInTeam(pokemon.id)) {
-                    <button 
-                      type="button" 
-                      class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold cursor-default pointer-events-none w-24"
-                    >
-                      In Team
-                    </button>
-                  } @else {
-                    <button 
-                      type="button"
-                      (click)="addToTeam($event, pokemon)"
-                      [disabled]="team().length >= 6"
-                      class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-poke-blue/80 hover:border-poke-blue border border-white/15 transition-all text-white text-xs font-semibold shadow-sm w-24 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/15"
-                    >
-                      Add to Team
-                    </button>
+                  @switch (getTeamActionState(pokemon.id)) {
+                    @case ('in-team') {
+                      <span
+                        class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold w-32"
+                        title="This Pokémon is on one of your saved teams"
+                      >
+                        Already in Team
+                      </span>
+                    }
+                    @case ('manage-in-builder') {
+                      <span
+                        class="inline-flex items-center justify-center px-3 py-1.5 rounded-lg bg-white/5 text-gray-400 border border-white/10 text-xs font-semibold w-32"
+                        title="Active team is full or unavailable — use My Team to create or edit a team"
+                      >
+                        Manage in Team Builder
+                      </span>
+                    }
+                    @default {
+                      <button
+                        type="button"
+                        (click)="addToTeam($event, pokemon)"
+                        class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-poke-blue/80 hover:border-poke-blue border border-white/15 transition-all text-white text-xs font-semibold shadow-sm w-32"
+                        title="Add to your active team"
+                      >
+                        Available
+                      </button>
+                    }
                   }
                 </td>
               </tr>
