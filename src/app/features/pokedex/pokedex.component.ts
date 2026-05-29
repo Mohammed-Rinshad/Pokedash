@@ -7,6 +7,7 @@ import type { Pokemon } from '../../models/pokemon.model';
 import { PokemonStore, SortOption, SortDirection } from '../../state/pokemon.store';
 import { PokemonSelectors } from '../../state/pokemon.selectors';
 import { TrainerStore } from '../../state/trainer.store';
+import { PokemonDetailPanelComponent } from './components/pokemon-detail-panel.component';
 
 const SKELETON_ROWS = Array.from({ length: 25 }, (_, i) => i);
 
@@ -17,7 +18,7 @@ const SKELETON_ROWS = Array.from({ length: 25 }, (_, i) => i);
 @Component({
   selector: 'app-pokedex',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PokemonDetailPanelComponent],
   templateUrl: './pokedex.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

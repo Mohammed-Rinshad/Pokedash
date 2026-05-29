@@ -1,7 +1,7 @@
 import { Injectable, computed, inject } from '@angular/core';
 import { BaseStore } from './base.store';
 import { PokemonService } from '../core/services/pokemon.service';
-import { Pokemon } from '../models/pokemon.model';
+import { Pokemon, PokemonDetails } from '../models/pokemon.model';
 
 export type SortOption = 'id' | 'name' | 'hp' | 'attack';
 export type SortDirection = 'asc' | 'desc';
@@ -9,6 +9,9 @@ export type SortDirection = 'asc' | 'desc';
 export interface PokemonState {
   pokemons: Pokemon[];
   selectedPokemonId: number | null;
+  selectedPokemonDetails: PokemonDetails | null;
+  detailsLoading: boolean;
+  detailsError: string | null;
   loading: boolean;
   error: string | null;
   searchQuery: string;
@@ -23,6 +26,9 @@ export interface PokemonState {
 const initialState: PokemonState = {
   pokemons: [],
   selectedPokemonId: null,
+  selectedPokemonDetails: null,
+  detailsLoading: false,
+  detailsError: null,
   loading: false,
   error: null,
   searchQuery: '',
@@ -55,6 +61,11 @@ export class PokemonStore extends BaseStore<PokemonState> {
   public readonly loading = computed(() => this.stateSignal().loading);
   public readonly error = computed(() => this.stateSignal().error);
   
+  public readonly selectedPokemonDetails = computed(() => this.stateSignal().selectedPokemonDetails);
+  public readonly detailsLoading = computed(() => this.stateSignal().detailsLoading);
+  public readonly detailsError = computed(() => this.stateSignal().detailsError);
+  public readonly selectedPokemonId = computed(() => this.stateSignal().selectedPokemonId);
+  
   public readonly selectedPokemon = computed(() => {
     const state = this.stateSignal();
     return state.pokemons.find(p => p.id === state.selectedPokemonId) || null;
@@ -84,10 +95,16 @@ export class PokemonStore extends BaseStore<PokemonState> {
   }
 
   /**
-   * Selects a specific pokemon to be viewed in the detail panel.
+   * Selects a specific pokemon to be viewed in the detail panel and triggers fetch.
+   * If null is passed, closes the panel.
    */
-  public selectPokemon(id: number): void {
+  public selectPokemon(id: number | null): void {
     this.setState({ selectedPokemonId: id });
+    if (id !== null) {
+      this.fetchPokemonDetails(id);
+    } else {
+      this.setState({ selectedPokemonDetails: null, detailsError: null });
+    }
   }
 
   /**
@@ -147,6 +164,23 @@ export class PokemonStore extends BaseStore<PokemonState> {
         const message =
           err instanceof Error ? err.message : 'Failed to load Pokémon. Please try again.';
         this.setError(message);
+      },
+    });
+  }
+
+  /**
+   * Fetches full details for a single Pokémon.
+   */
+  public fetchPokemonDetails(id: number): void {
+    this.setState({ detailsLoading: true, detailsError: null, selectedPokemonDetails: null });
+    this.pokemonService.getPokemonDetails(id).subscribe({
+      next: (details) => {
+        this.setState({ selectedPokemonDetails: details, detailsLoading: false });
+      },
+      error: (err: unknown) => {
+        const message =
+          err instanceof Error ? err.message : 'Failed to load Pokémon details.';
+        this.setState({ detailsError: message, detailsLoading: false });
       },
     });
   }
