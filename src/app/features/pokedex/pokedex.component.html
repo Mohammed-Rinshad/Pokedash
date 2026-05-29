@@ -10,6 +10,58 @@
     </div>
   </div>
 
+  <!-- Filter & Sort Toolbar -->
+  <div class="glass-panel p-4 rounded-xl flex flex-col md:flex-row gap-4 items-center justify-between border border-white/5 relative z-20">
+    <div class="w-full md:w-1/3 relative">
+      <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+        <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+        </svg>
+      </div>
+      <input 
+        type="text" 
+        [formControl]="searchControl"
+        class="w-full bg-white/5 border border-white/10 rounded-lg py-2 pl-10 pr-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-poke-blue/50 focus:border-transparent transition-all"
+        placeholder="Search Pokémon..."
+      >
+    </div>
+
+    <div class="flex gap-3 w-full md:w-auto">
+      <select 
+        (change)="onTypeChange($event)"
+        class="bg-white/5 border border-white/10 rounded-lg py-2 px-3 text-white focus:outline-none focus:ring-2 focus:ring-poke-blue/50 transition-all appearance-none cursor-pointer"
+      >
+        @for (type of availableTypes(); track type) {
+          <option [value]="type" class="bg-poke-darker">{{ type }}</option>
+        }
+      </select>
+
+      <div class="flex items-center gap-2 bg-white/5 border border-white/10 rounded-lg overflow-hidden">
+        <select 
+          (change)="onSortChange($event)"
+          class="bg-transparent py-2 px-3 text-white focus:outline-none cursor-pointer appearance-none border-r border-white/10"
+        >
+          <option value="id" class="bg-poke-darker">Number</option>
+          <option value="name" class="bg-poke-darker">Name</option>
+          <option value="hp" class="bg-poke-darker">HP</option>
+          <option value="attack" class="bg-poke-darker">Attack</option>
+        </select>
+        <button 
+          type="button" 
+          (click)="toggleSortDirection()"
+          class="px-3 text-gray-300 hover:text-white transition-colors flex items-center justify-center"
+          [title]="currentSortDir === 'asc' ? 'Ascending' : 'Descending'"
+        >
+          @if (currentSortDir === 'asc') {
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"></path></svg>
+          } @else {
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"></path></svg>
+          }
+        </button>
+      </div>
+    </div>
+  </div>
+
   <section class="glass-panel p-4 sm:p-6 overflow-hidden">
     @if (loading()) {
       <div class="overflow-x-auto">
@@ -21,6 +73,7 @@
               <th class="py-3 px-2 font-semibold">Types</th>
               <th class="py-3 px-2 font-semibold text-center">HP</th>
               <th class="py-3 px-2 font-semibold text-center">Attack</th>
+              <th class="py-3 px-2 font-semibold text-center">Action</th>
             </tr>
           </thead>
           <tbody>
@@ -43,6 +96,9 @@
                 </td>
                 <td class="py-3 px-2 text-center">
                   <div class="h-4 w-14 mx-auto rounded bg-white/10 animate-pulse"></div>
+                </td>
+                <td class="py-3 px-2 text-center">
+                  <div class="h-8 w-24 mx-auto rounded-lg bg-white/10 animate-pulse"></div>
                 </td>
               </tr>
             }
@@ -74,10 +130,11 @@
               <th class="py-3 px-2 font-semibold">Types</th>
               <th class="py-3 px-2 font-semibold text-center">HP</th>
               <th class="py-3 px-2 font-semibold text-center">Attack</th>
+              <th class="py-3 px-2 font-semibold text-center">Action</th>
             </tr>
           </thead>
           <tbody>
-            @for (pokemon of pokemons(); track pokemon.id) {
+            @for (pokemon of filteredPokemons(); track pokemon.id) {
               <tr
                 class="border-t border-white/5 group cursor-pointer transition-all hover:bg-white/5 hover:-translate-y-[1px] duration-200"
                 (click)="selectPokemon(pokemon.id)"
@@ -117,13 +174,65 @@
                     {{ statValue(pokemon, 'attack') }}
                   </span>
                 </td>
+                <td class="py-3 px-2 text-center">
+                  @if (isInTeam(pokemon.id)) {
+                    <button 
+                      type="button" 
+                      class="px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-xs font-semibold cursor-default pointer-events-none w-24"
+                    >
+                      In Team
+                    </button>
+                  } @else {
+                    <button 
+                      type="button"
+                      (click)="addToTeam($event, pokemon)"
+                      [disabled]="team().length >= 6"
+                      class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-poke-blue/80 hover:border-poke-blue border border-white/15 transition-all text-white text-xs font-semibold shadow-sm w-24 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-white/10 disabled:hover:border-white/15"
+                    >
+                      Add to Team
+                    </button>
+                  }
+                </td>
               </tr>
             }
           </tbody>
         </table>
+
+        @if (filteredPokemons().length === 0 && !loading()) {
+          <div class="py-8 text-center text-gray-400">
+            No Pokémon found matching your criteria.
+          </div>
+        }
       </div>
       }
     }
+
+    <!-- Pagination Controls -->
+    <div class="mt-6 pt-4 border-t border-white/10 flex items-center justify-between">
+      <div class="text-sm text-gray-400">
+        Page <span class="text-white font-medium">{{ currentPage() }}</span> of <span class="text-white font-medium">{{ totalPages() }}</span>
+      </div>
+      <div class="flex gap-2">
+        <button 
+          type="button" 
+          (click)="prevPage()"
+          [disabled]="currentPage() === 1 || loading()"
+          class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+        >
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+          Prev
+        </button>
+        <button 
+          type="button" 
+          (click)="nextPage()"
+          [disabled]="currentPage() >= totalPages() || loading()"
+          class="px-4 py-2 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+        >
+          Next
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+        </button>
+      </div>
+    </div>
   </section>
 </div>
 

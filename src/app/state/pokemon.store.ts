@@ -3,11 +3,21 @@ import { BaseStore } from './base.store';
 import { PokemonService } from '../core/services/pokemon.service';
 import { Pokemon } from '../models/pokemon.model';
 
+export type SortOption = 'id' | 'name' | 'hp' | 'attack';
+export type SortDirection = 'asc' | 'desc';
+
 export interface PokemonState {
   pokemons: Pokemon[];
   selectedPokemonId: number | null;
   loading: boolean;
   error: string | null;
+  searchQuery: string;
+  typeFilter: string;
+  sortBy: SortOption;
+  sortDirection: SortDirection;
+  limit: number;
+  offset: number;
+  totalCount: number;
 }
 
 const initialState: PokemonState = {
@@ -15,6 +25,13 @@ const initialState: PokemonState = {
   selectedPokemonId: null,
   loading: false,
   error: null,
+  searchQuery: '',
+  typeFilter: 'All',
+  sortBy: 'id',
+  sortDirection: 'asc',
+  limit: 25,
+  offset: 0,
+  totalCount: 1025,
 };
 
 /**
@@ -74,9 +91,53 @@ export class PokemonStore extends BaseStore<PokemonState> {
   }
 
   /**
+   * Updates search query for client-side filtering.
+   */
+  public setSearchQuery(searchQuery: string): void {
+    this.setState({ searchQuery });
+  }
+
+  /**
+   * Updates type filter for client-side filtering.
+   */
+  public setTypeFilter(typeFilter: string): void {
+    this.setState({ typeFilter });
+  }
+
+  /**
+   * Updates sort configuration for client-side sorting.
+   */
+  public setSort(sortBy: SortOption, sortDirection: SortDirection): void {
+    this.setState({ sortBy, sortDirection });
+  }
+
+  /**
+   * Navigates to the next page and fetches data.
+   */
+  public nextPage(): void {
+    const current = this.state;
+    if (current.offset + current.limit < current.totalCount) {
+      this.setState({ offset: current.offset + current.limit });
+      this.fetchPokemons();
+    }
+  }
+
+  /**
+   * Navigates to the previous page and fetches data.
+   */
+  public prevPage(): void {
+    const current = this.state;
+    if (current.offset >= current.limit) {
+      this.setState({ offset: current.offset - current.limit });
+      this.fetchPokemons();
+    }
+  }
+
+  /**
    * Fetches a page of Pokémon and updates store state (loading/error/data).
    */
-  public fetchPokemons(limit: number, offset: number): void {
+  public fetchPokemons(): void {
+    const { limit, offset } = this.state;
     this.setLoading(true);
     this.pokemonService.getPokemons(limit, offset).subscribe({
       next: (pokemons) => {
